@@ -4,6 +4,7 @@ from flask import Flask
 import pytest
 
 
+
 def test_ingest_endpoint():
     url = 'http://localhost:5000/ingest'  
     data = {'data': [[100, 100, 200, 3000], [200, 230, 500, 4000]]}
