@@ -4,9 +4,8 @@ import pickle
 import sqlite3
 from sklearn.model_selection import cross_val_score, train_test_split
 import pandas as pd
-
-
-os.chdir(os.path.dirname(__file__))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
