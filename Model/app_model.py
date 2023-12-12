@@ -16,54 +16,34 @@ def hello():
     return "Bienvenido a mi API del modelo advertising"
 
 # 1. Endpoint que devuelva la predicción de los nuevos datos enviados mediante argumentos en la llamada
-@app.route('/v1/predict', methods=['GET'])
-def predict():
+@app.route('/v2/predict', methods=['GET'])
+def predict_list():
     model = pickle.load(open('data/advertising_model','rb'))
+    data = request.get_json()
 
-    tv = request.args.get('TV', None)
-    radio = request.args.get('radio', None)
-    newspaper = request.args.get('newspaper', None)
+    input_values = data['data'][0]
+    tv, radio, newspaper = map(int, input_values)
 
-    if tv is None or radio is None or newspaper is None:
-        return "Missing args, the input values are needed to predict"
-    else:
-        prediction = model.predict([[int(tv),int(radio),int(newspaper)]])
-        return "The prediction of sales investing that amount of money in TV, radio and newspaper is: " + str(round(prediction[0],2)) + 'k €'
-
-# 1. Ofrezca la predicción de ventas a partir de todos los valores de gastos en publicidad. (/v2/predict)
-@app.route('/v2/predict_bd', methods=['GET'])
-def predict_bd():
-    query = "SELECT * FROM Advertising;"
-    conn = sqlite3.connect('ejercicio/data/Advertising.db')
-    crsr = conn.cursor()
-    crsr.execute(query)
-    ans = crsr.fetchall()
-    conn.close()
-    names = [description[0] for description in crsr.description]
-    df=pd.DataFrame(ans,columns=names).drop(columns=['sales'])
-    model = pickle.load(open('data/advertising_model','rb'))
-
-    predictions = model.predict(df)
-
-    rounded_predictions = [round(pred, 2) for pred in predictions]
+    prediction = model.predict([[tv, radio, newspaper]])
+    return jsonify({'prediction': round(prediction[0], 2)})
 
 
-    predictions_dict = {"predictions": rounded_predictions}
-
-    return jsonify(predictions_dict)
 
 # 2. Un endpoint para almacenar nuevos registros en la base de datos que deberás crear previamente.(/v2/ingest_data)
-@app.route('/v2/ingest_data', methods=['POST'])
-def ingest_data():
-    conn = sqlite3.connect('ejercicio/data/Advertising.db')
-    crsr = conn.cursor()
+@app.route('/ingest', methods=['POST'])
+def add_data():
     data = request.get_json()
-    values = [(data['TV'], data['radio'], data['newspaper'], data['sales'])]
-    crsr.executemany('INSERT INTO Advertising (TV, radio, newspaper, sales) VALUES (?, ?, ?, ?);', values)
-    conn.commit()
-    conn.close()
 
-    return jsonify({'message': 'Base de Datos actualizados'})
+    for row in data.get('data', []):
+        tv, radio, newspaper, sales = row
+        query = "INSERT INTO Advertising (tv, radio, newspaper, sales) VALUES (?, ?, ?, ?)"
+        connection = sqlite3.connect('ejercicio/data/Advertising.db')
+        crsr = connection.cursor()
+        crsr.execute(query, (tv, radio, newspaper, sales))
+        connection.commit()
+        connection.close()
+
+    return jsonify({'message': 'Datos ingresados correctamente'})
 
 #3. Posibilidad de reentrenar de nuevo el modelo con los posibles nuevos registros que se recojan. (/v2/retrain)
 
@@ -71,27 +51,29 @@ def ingest_data():
 def retrain():
     conn = sqlite3.connect('ejercicio/data/Advertising.db')
     crsr = conn.cursor()
-    data = request.get_json()
-    values = [(data['TV'], data['radio'], data['newspaper'], data['sales'])]
-    crsr.executemany('INSERT INTO Advertising (TV, radio, newspaper, sales) VALUES (?, ?, ?, ?);', values)
-    conn.commit()
-    
     query = "SELECT * FROM Advertising;"
     crsr.execute(query)
     ans = crsr.fetchall()
     conn.close()
     names = [description[0] for description in crsr.description]
-    df=pd.DataFrame(ans,columns=names)
-    model = pickle.load(open('data/advertising_model','rb'))
+    df = pd.DataFrame(ans, columns=names)
+
+        # Cargar el modelo existente
+    model = pickle.load(open('data/advertising_model', 'rb'))
+
+        # Dividir los datos en características (X) y etiquetas (y)
     X = df[["TV", "newspaper", "radio"]]
     y = df["sales"]
+
+        # Dividir los datos en conjuntos de entrenamiento y prueba
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=10)
+
+        # Reentrenar el modelo con los nuevos datos
     model.fit(X_train, y_train)
-    pred = model.predict(X_test)
 
-    pred = [round(t, 2) for t in pred]
-    conn.close()
+        # Guardar el modelo reentrenado
+    pickle.dump(model, open('advertising_model_2', 'wb'))
 
-    return jsonify({"message": "Modelo reentrenado con éxito.", "predictions": pred})
+    return jsonify({'message': 'Modelo reentrenado correctamente.'})
 
 app.run()
