@@ -56,21 +56,11 @@ def retrain():
     conn.close()
     names = [description[0] for description in crsr.description]
     df = pd.DataFrame(ans, columns=names)
-
-        # Cargar el modelo existente
     model = pickle.load(open('data/advertising_model', 'rb'))
-
-        # Dividir los datos en características (X) y etiquetas (y)
     X = df[["TV", "newspaper", "radio"]]
     y = df["sales"]
-
-        # Dividir los datos en conjuntos de entrenamiento y prueba
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=10)
-
-        # Reentrenar el modelo con los nuevos datos
     model.fit(X_train, y_train)
-
-        # Guardar el modelo reentrenado
     pickle.dump(model, open('advertising_model_2', 'wb'))
 
     return jsonify({'message': 'Modelo reentrenado correctamente.'})
