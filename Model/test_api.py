@@ -13,14 +13,14 @@ def test_ingest_endpoint():
     assert response.json() == {'message': 'Datos ingresados correctamente'}
 
 def test_predict_endpoint():
-    url = 'http://localhost:5000/v2/predict'  
+    url = 'http://localhost:5000/predict'  
     data = {'data': [[100, 100, 200]]} 
     response = requests.get(url, json=data)
     assert response.status_code == 200
     assert 'prediction' in response.json()
 
 def test_retrain_endpoint():
-    url = 'http://localhost:5000/v2/retrain'  
+    url = 'http://localhost:5000/retrain'  
     response = requests.post(url)
     assert response.status_code == 200
     assert response.json() == {'message': 'Modelo reentrenado correctamente.'}

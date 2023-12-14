@@ -4,18 +4,19 @@ import pickle
 import sqlite3
 from sklearn.model_selection import cross_val_score, train_test_split
 import pandas as pd
+
+#os.chdir(os.path.dirname(__file__)) # da error en terminal
+app = Flask(__name__)
+#app.config['DEBUG'] = True
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
-
-app = Flask(__name__)
-app.config['DEBUG'] = True
 
 @app.route("/", methods=['GET'])
 def hello():
     return "Bienvenido a mi API del modelo advertising"
 
 # 1. Endpoint que devuelva la predicción de los nuevos datos enviados mediante argumentos en la llamada
-@app.route('/v2/predict', methods=['GET'])
+@app.route('/predict', methods=['GET'])
 def predict_list():
     model = pickle.load(open('data/advertising_model','rb'))
     data = request.get_json()
@@ -46,7 +47,7 @@ def add_data():
 
 #3. Posibilidad de reentrenar de nuevo el modelo con los posibles nuevos registros que se recojan. (/v2/retrain)
 
-@app.route('/v2/retrain', methods=['POST'])
+@app.route('/retrain', methods=['POST'])
 def retrain():
     conn = sqlite3.connect('ejercicio/data/Advertising.db')
     crsr = conn.cursor()
@@ -65,4 +66,5 @@ def retrain():
 
     return jsonify({'message': 'Modelo reentrenado correctamente.'})
 
-app.run()
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
